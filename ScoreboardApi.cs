@@ -5,8 +5,8 @@ namespace NetworkAssignment;
 
 public class ScoreboardApi
 {
-    private const string SubmitUrl = "https://hooks.zapier.com/hooks/catch/8338993/ujs9jj9/";
-    private const string ScoreboardUrl = "https://script.google.com/macros/s/AKfycbys5aEPMvNCutyhNYYCcQcCjzsi2UtqNspmKyCH-AicJxJbCJMrAoT0LUaYaXhTWA8n/exec";
+    private const string BaseUrl = "https://schoolgame-6eaf3-default-rtdb.europe-west1.firebasedatabase.app/";
+    private const string ScoresPath = "scores.json";
 
     private readonly HttpClient _client;
 
@@ -20,23 +20,28 @@ public class ScoreboardApi
 
     public async Task SubmitScore(ScoreEntry entry)
     {
-        var response = await _client.PostAsJsonAsync(SubmitUrl, entry);
+        var response = await _client.PostAsJsonAsync(BaseUrl + ScoresPath, entry);
         response.EnsureSuccessStatusCode();
     }
 
     public async Task<List<ScoreEntry>> GetScoreboard()
     {
-        var response = await _client.GetAsync(ScoreboardUrl);
+        var response = await _client.GetAsync(BaseUrl + ScoresPath);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync();
+        
+        if (json == "null")
+        {
+            return new List<ScoreEntry>();
+        }
 
         var options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         };
 
-        var scores = JsonSerializer.Deserialize<List<ScoreEntry>>(json, options);
-        return scores ?? new List<ScoreEntry>();
+        var scoresDict = JsonSerializer.Deserialize<Dictionary<string, ScoreEntry>>(json, options);
+        return scoresDict?.Values.ToList() ?? new List<ScoreEntry>();
     }
 }
